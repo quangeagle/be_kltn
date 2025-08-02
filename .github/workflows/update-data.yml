@@ -1,0 +1,31 @@
+name: Update Fuel and Weather
+
+on:
+  schedule:
+    - cron: '0 1 * * *' # chạy lúc 08:00 sáng giờ Việt Nam (UTC+7 = 1h UTC)
+  workflow_dispatch: # Cho phép bạn chạy thủ công trên GitHub
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run fuel and weather updater
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+          API_KEY: ${{ secrets.API_KEY }}
+          CITY: "ho chi minh" # hoặc bạn đặt lại cho mỗi supplier
+        run: |
+          node services/fuelUpdater.js
+          node services/weatherUpdater.js
