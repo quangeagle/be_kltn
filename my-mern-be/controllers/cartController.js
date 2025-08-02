@@ -52,3 +52,32 @@ exports.removeFromCart = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+exports.updateQuantityInCart = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { productId, action } = req.body; // action = 'increase' | 'decrease'
+
+    const cart = await Cart.findOne({ user: userId });
+    if (!cart) return res.status(404).json({ message: 'Cart not found' });
+
+    const item = cart.items.find(item => item.product.toString() === productId);
+    if (!item) return res.status(404).json({ message: 'Product not found in cart' });
+
+    if (action === 'increase') {
+      item.quantity += 1;
+    } else if (action === 'decrease') {
+      item.quantity -= 1;
+      if (item.quantity <= 0) {
+        cart.items = cart.items.filter(i => i.product.toString() !== productId);
+      }
+    } else {
+      return res.status(400).json({ message: 'Invalid action' });
+    }
+
+    cart.updatedAt = Date.now();
+    await cart.save();
+    res.status(200).json(cart);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

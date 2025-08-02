@@ -2,49 +2,64 @@ const Product = require('../models/Product');
 const Supplier = require('../models/Supplier');
 const Category = require('../models/Category');
 const CategoryGroup = require('../models/CategoryGroup');
+const cloudinary = require('../utils/cloudinary');
+const upload = require('../middleware/upload');
 // Supplier tạo sản phẩm mới
+
 exports.createProduct = async (req, res) => {
-    try {
-      const supplierId = req.user.id;
-      const { name, description, price, unit, quantity, category, images } = req.body;
-  
-      // 🔍 Lấy category từ DB để lấy ra group
-      const foundCategory = await Category.findById(category).populate('group');
-      if (!foundCategory) {
-        return res.status(404).json({ error: 'Category không tồn tại' });
-      }
-  
-      const categoryGroupId = foundCategory.group._id;
-  
-      const newProduct = new Product({
-        name,
-        description,
-        price,
-        unit,
-        quantity,
-        category,
-        categoryGroup: categoryGroupId, // ✅ Tự động gán group từ category
-        supplier: supplierId,
-        images,
-        status: 'pending'
-      });
-  
-      const savedProduct = await newProduct.save();
-  
-      // Cập nhật supplier (nếu cần)
-      await Supplier.findByIdAndUpdate(supplierId, {
-        $push: { products: savedProduct._id }
-      });
-  
-      res.status(201).json({
-        message: 'Product created and pending approval',
-        product: savedProduct
-      });
-  
-    } catch (err) {
-      res.status(500).json({ error: err.message });
+  try {
+    const supplierId = req.user.id;
+    const { name, description, price, unit, quantity, category } = req.body;
+
+    // 🔍 Lấy group từ category
+    const foundCategory = await Category.findById(category).populate('group');
+    if (!foundCategory) {
+      return res.status(404).json({ error: 'Category không tồn tại' });
     }
-  };
+    const categoryGroupId = foundCategory.group._id;
+
+    // 📤 Upload ảnh lên Cloudinary
+    let uploadedImageUrls = [];
+    if (req.files && req.files.length > 0) {
+      const uploadPromises = req.files.map(file =>
+        cloudinary.uploader.upload_stream({ folder: 'products' }, (error, result) => {
+          if (error) throw error;
+          uploadedImageUrls.push(result.secure_url);
+        }).end(file.buffer)
+      );
+
+      await Promise.all(uploadPromises);
+    }
+
+    const newProduct = new Product({
+      name,
+      description,
+      price,
+      unit,
+      quantity,
+      category,
+      categoryGroup: categoryGroupId,
+      supplier: supplierId,
+      images: uploadedImageUrls,
+      status: 'pending'
+    });
+
+    const savedProduct = await newProduct.save();
+
+    await Supplier.findByIdAndUpdate(supplierId, {
+      $push: { products: savedProduct._id }
+    });
+
+    res.status(201).json({
+      message: 'Product created and pending approval',
+      product: savedProduct
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
   
 
 // Admin duyệt sản phẩm
@@ -107,9 +122,21 @@ exports.getProductDetail = async (req, res) => {
       if (!product) return res.status(404).json({ error: 'Product not found' });
       if (product.supplier.toString() !== supplierId) return res.status(403).json({ error: 'Not your product' });
   
-      const { name, description, price, unit, quantity, categoryGroup, category, images } = req.body;
+      const { name, description, price, unit, quantity, categoryGroup, category } = req.body;
   
-      // cập nhật và chuyển trạng thái về pending để chờ admin duyệt lại
+      // 📤 Nếu có ảnh mới, upload lên Cloudinary
+      let newImageUrls = product.images;
+      if (req.files && req.files.length > 0) {
+        const uploadPromises = req.files.map(file =>
+          cloudinary.uploader.upload_stream({ folder: 'products' }, (error, result) => {
+            if (error) throw error;
+            newImageUrls.push(result.secure_url);
+          }).end(file.buffer)
+        );
+        await Promise.all(uploadPromises);
+      }
+  
+      // cập nhật lại dữ liệu
       product.name = name ?? product.name;
       product.description = description ?? product.description;
       product.price = price ?? product.price;
@@ -117,7 +144,7 @@ exports.getProductDetail = async (req, res) => {
       product.quantity = quantity ?? product.quantity;
       product.categoryGroup = categoryGroup ?? product.categoryGroup;
       product.category = category ?? product.category;
-      product.images = images ?? product.images;
+      product.images = newImageUrls;
       product.status = 'pending';
   
       const updated = await product.save();
@@ -126,6 +153,7 @@ exports.getProductDetail = async (req, res) => {
       res.status(500).json({ error: err.message });
     }
   };
+  
   // GET /products/supplier/:supplierId?status=pending|approved|rejected
 exports.getProductsBySupplierAndStatus = async (req, res) => {
     try {
