@@ -2,7 +2,7 @@ name: Auto Update Weekly Data
 
 on:
   schedule:
-    - cron: '0 1 * * *'  # Chạy lúc 8h sáng VN (1h UTC) mỗi ngày
+   - cron: '*/5 * * * *'  # chạy mỗi 5 phút  # Chạy lúc 8h sáng VN (1h UTC) mỗi ngày
   workflow_dispatch:
 
 jobs:
