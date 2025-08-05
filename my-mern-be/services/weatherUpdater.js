@@ -24,30 +24,27 @@ async function fetchTemperature(city = 'ho chi minh') {
   }
 }
 
-async function updateTemperatureForSuppliers() {
-  const suppliers = await Supplier.find();
+async function updateTemperatureForAll() {
   const now = moment();
   const weekStart = now.startOf('isoWeek').toDate();
+  const city = 'ho chi minh'; // hoặc lấy từ DB sau
 
-  for (let sup of suppliers) {
-    const city = 'ho chi minh'; // ❗ Bạn có thể thay bằng sup.city nếu bạn đã lưu thành phố trong DB
+  const temperature = await fetchTemperature(city);
+  if (temperature == null) return;
 
-    const temperature = await fetchTemperature(city);
-    if (temperature == null) continue;
-
-    const record = await WeeklySalesInput.findOne({
-      supplier: sup._id,
-      weekStart
-    });
-
-    if (record) {
-      record.temperature = temperature;
-      await record.save();
-      console.log(`✅ Cập nhật nhiệt độ cho supplier ${sup.storeName}: ${temperature}°C`);
-    } else {
-      console.log(`⚠️ Không tìm thấy bản ghi tuần hiện tại cho supplier ${sup.storeName}`);
+  const result = await WeeklySalesInput.updateMany(
+    { 'items.weekStart': weekStart },
+    {
+      $set: {
+        'items.$[elem].temperature': temperature
+      }
+    },
+    {
+      arrayFilters: [{ 'elem.weekStart': weekStart }]
     }
-  }
+  );
+
+  console.log(`✅ Cập nhật nhiệt độ cho ${result.modifiedCount} bản ghi: ${temperature}°C`);
 }
 
-module.exports = { updateTemperatureForSuppliers };
+module.exports = { updateTemperatureForAll };

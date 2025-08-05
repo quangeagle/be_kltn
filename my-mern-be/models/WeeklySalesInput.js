@@ -1,7 +1,6 @@
 const mongoose = require('mongoose');
 
-const weeklySalesInputSchema = new mongoose.Schema({
-  supplier: { type: mongoose.Schema.Types.ObjectId, ref: 'Supplier', required: true },
+const weeklyItemSchema = new mongoose.Schema({
   weekIndex: { type: Number, required: true },
   weekStart: { type: Date, required: true },
   year: { type: Number, required: true },
@@ -12,9 +11,13 @@ const weeklySalesInputSchema = new mongoose.Schema({
   temperature: { type: Number, required: true },
   fuelPrice: { type: Number, required: true },
   cpi: { type: Number, required: true },
-  unemployment: { type: Number, required: true },
+  unemployment: { type: Number, required: true }
+}, { _id: false });
+
+const weeklySalesInputSchema = new mongoose.Schema({
+  supplier: { type: mongoose.Schema.Types.ObjectId, ref: 'Supplier', required: true },
+  items: { type: [weeklyItemSchema], required: true }, // Mảng các tuần
   createdAt: { type: Date, default: Date.now }
 });
 
 module.exports = mongoose.model('WeeklySalesInput', weeklySalesInputSchema);
-

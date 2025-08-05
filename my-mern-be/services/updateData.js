@@ -1,7 +1,7 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
-const { updateFuelPriceForSuppliers } = require('../services/fuelUpdater');
-const { updateTemperatureForSuppliers } = require('../services/weatherUpdater');
+const { updateFuelPriceForAll } = require('../services/fuelUpdater');
+const { updateTemperatureForAll } = require('../services/weatherUpdater');
 
 async function runUpdate() {
   try {
@@ -13,8 +13,8 @@ async function runUpdate() {
     console.log('✅ Kết nối MongoDB thành công!');
 
     console.log('🚀 Bắt đầu cập nhật dữ liệu hàng tuần...');
-    await updateFuelPriceForSuppliers();
-    await updateTemperatureForSuppliers();
+    await updateFuelPriceForAll();
+    await updateTemperatureForAll();
     console.log('✅ Hoàn tất cập nhật dữ liệu!');
   } catch (err) {
     console.error('❌ Lỗi trong quá trình cập nhật:', err);
