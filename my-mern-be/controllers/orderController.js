@@ -91,6 +91,8 @@ exports.cancelOrder = async (req, res) => {
   }
 };
 
+
+
 exports.approveOrder = async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -111,33 +113,46 @@ exports.approveOrder = async (req, res) => {
 
     const supplierId = order.supplier;
 
-    // Kiểm tra xem đã có bản ghi doanh thu tuần đó chưa
-    let weeklyRecord = await WeeklySalesInput.findOne({
-      supplier: supplierId,
-      weekStart: weekStart
-    });
+    // Tìm bản ghi WeeklySalesInput của supplier
+    let weeklyRecord = await WeeklySalesInput.findOne({ supplier: supplierId });
+
+    const newItem = {
+      weekIndex: moment(now).diff(moment('2024-01-01'), 'weeks'), // hoặc tính theo số tuần thực tế
+      weekStart,
+      year,
+      weekOfYear,
+      month,
+      weeklySales: order.totalAmount,
+      holidayFlag: 0,
+      temperature: 25,
+      fuelPrice: 20,
+      cpi: 100,
+      unemployment: 5
+    };
 
     if (!weeklyRecord) {
-      // Nếu chưa có → tạo mới
+      // Nếu chưa có bản ghi → tạo mới với 1 item
       weeklyRecord = new WeeklySalesInput({
         supplier: supplierId,
-        weekIndex: await WeeklySalesInput.countDocuments({ supplier: supplierId }) + 1, // tăng dần theo supplier
-        weekStart,
-        weekOfYear,
-        year,
-        month,
-        weeklySales: order.totalAmount,
-
-        // Tạm thời gán mặc định cho các yếu tố này (sau có thể cập nhật từ API thời tiết/ngày lễ)
-        holidayFlag: 0,
-        temperature: 25,
-        fuelPrice: 20,
-        cpi: 100,
-        unemployment: 5
+        items: [newItem]
       });
     } else {
-      // Nếu đã có → cộng thêm doanh thu
-      weeklyRecord.weeklySales += order.totalAmount;
+      // Kiểm tra xem tuần này đã tồn tại trong items chưa
+      const existingIndex = weeklyRecord.items.findIndex(item =>
+        moment(item.weekStart).isSame(weekStart, 'day')
+      );
+
+      if (existingIndex !== -1) {
+        // Nếu đã tồn tại → cộng dồn doanh thu
+        weeklyRecord.items[existingIndex].weeklySales += order.totalAmount;
+      } else {
+        // Nếu chưa có → thêm tuần mới
+        if (weeklyRecord.items.length >= 10) {
+          // Xóa tuần cũ nhất
+          weeklyRecord.items.shift();
+        }
+        weeklyRecord.items.push(newItem);
+      }
     }
 
     await weeklyRecord.save();
@@ -148,6 +163,7 @@ exports.approveOrder = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 exports.getOrdersBySupplier = async (req, res) => {
   try {
     const supplierId = req.user.id; // Lấy từ token đã xác thực

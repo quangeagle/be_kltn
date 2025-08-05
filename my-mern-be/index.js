@@ -17,6 +17,7 @@ const wishlistRoutes = require('./routes/wishlistRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const fuelRoutes = require('./routes/fuel');
 const weatherRoutes = require('./routes/weather');
+const predictRoutes = require('./routes/predict');
 // Middlewares
 app.use(cors());
 app.use(express.json());
@@ -30,6 +31,7 @@ app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/fuel', fuelRoutes);
 app.use('/api/weather', weatherRoutes);
+app.use('/api/predict', predictRoutes);
 // Routes
 app.get('/', (req, res) => {
   res.send('🔥 Backend is running!');

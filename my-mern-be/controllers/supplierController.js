@@ -80,3 +80,17 @@ exports.loginSupplier = async (req, res) => {
       res.status(500).json({ error: 'Failed to fetch suppliers: ' + err.message });
     }
   };
+  exports.getSupplierById = async (req, res) => {
+    try {
+      const { supplierId } = req.params;
+  
+      const supplier = await Supplier.findById(supplierId).select('-password');
+      if (!supplier) {
+        return res.status(404).json({ error: 'Không tìm thấy cửa hàng' });
+      }
+  
+      res.status(200).json({ supplier });
+    } catch (err) {
+      res.status(500).json({ error: 'Lỗi máy chủ: ' + err.message });
+    }
+  };

@@ -9,27 +9,15 @@ const upload = require('../middleware/upload');
 exports.createProduct = async (req, res) => {
   try {
     const supplierId = req.user.id;
-    const { name, description, price, unit, quantity, category } = req.body;
+    const { name, description, price, unit, quantity, category, images } = req.body;
 
     // 🔍 Lấy group từ category
     const foundCategory = await Category.findById(category).populate('group');
     if (!foundCategory) {
       return res.status(404).json({ error: 'Category không tồn tại' });
     }
+
     const categoryGroupId = foundCategory.group._id;
-
-    // 📤 Upload ảnh lên Cloudinary
-    let uploadedImageUrls = [];
-    if (req.files && req.files.length > 0) {
-      const uploadPromises = req.files.map(file =>
-        cloudinary.uploader.upload_stream({ folder: 'products' }, (error, result) => {
-          if (error) throw error;
-          uploadedImageUrls.push(result.secure_url);
-        }).end(file.buffer)
-      );
-
-      await Promise.all(uploadPromises);
-    }
 
     const newProduct = new Product({
       name,
@@ -40,7 +28,7 @@ exports.createProduct = async (req, res) => {
       category,
       categoryGroup: categoryGroupId,
       supplier: supplierId,
-      images: uploadedImageUrls,
+      images, // ✅ Dùng ảnh từ frontend
       status: 'pending'
     });
 
@@ -59,6 +47,7 @@ exports.createProduct = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
   
 

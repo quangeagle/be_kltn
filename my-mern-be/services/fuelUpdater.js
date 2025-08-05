@@ -37,29 +37,27 @@ async function fetchFuelPriceUSD(province = 'ho-chi-minh') {
   }
 }
 
-async function updateFuelPriceForSuppliers() {
-  const suppliers = await Supplier.find();
+async function updateFuelPriceForAll() {
   const now = moment();
   const weekStart = now.startOf('isoWeek').toDate();
+  const province = 'ho-chi-minh'; // sau này có thể tự động hóa theo địa chỉ
 
-  for (let sup of suppliers) {
-    const province = 'ho-chi-minh'; // (có thể extract từ sup.storeAddress sau)
-    const fuelPriceUSD = await fetchFuelPriceUSD(province);
-    if (!fuelPriceUSD) continue;
+  const fuelPriceUSD = await fetchFuelPriceUSD(province);
+  if (!fuelPriceUSD) return;
 
-    const record = await WeeklySalesInput.findOne({
-      supplier: sup._id,
-      weekStart
-    });
-
-    if (record) {
-      record.fuelPrice = fuelPriceUSD;
-      await record.save();
-      console.log(`✅ Đã cập nhật giá xăng cho ${sup.storeName}: ${fuelPriceUSD} USD/Gallon`);
-    } else {
-      console.warn(`⚠️ Không tìm thấy bản ghi doanh thu tuần này cho ${sup.storeName}`);
+  // Cập nhật cho tất cả bản ghi của tuần hiện tại
+  const result = await WeeklySalesInput.updateMany(
+    { 'items.weekStart': weekStart },
+    {
+      $set: {
+        'items.$[elem].fuelPrice': fuelPriceUSD
+      }
+    },
+    {
+      arrayFilters: [{ 'elem.weekStart': weekStart }]
     }
-  }
-}
+  );
 
-module.exports = { updateFuelPriceForSuppliers };
+  console.log(`✅ Cập nhật giá xăng cho ${result.modifiedCount} bản ghi: ${fuelPriceUSD} USD/Gallon`);
+}
+module.exports = { updateFuelPriceForAll };
