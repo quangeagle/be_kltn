@@ -8,8 +8,8 @@ const weeklyItemSchema = new mongoose.Schema({
   month: { type: Number, required: true },
   weeklySales: { type: Number, required: true },
   holidayFlag: { type: Number, enum: [0, 1], required: true },
-  temperature: { type: Number, required: true },
-  fuelPrice: { type: Number, required: true },
+  temperature: { type: Number, required: false, default: null },
+  fuelPrice: { type: Number, required: false, default: null },
   cpi: { type: Number, required: true },
   unemployment: { type: Number, required: true }
 }, { _id: false });
