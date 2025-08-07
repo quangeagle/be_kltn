@@ -10,27 +10,18 @@ async function createEmptyWeekIfMissing() {
   for (let sup of suppliers) {
     const createdAt = moment(sup.createdAt).startOf('day');
     let record = await WeeklySalesInput.findOne({ supplier: sup._id });
-
-    // Tính weekIndex từ ngày thành lập đến tuần hiện tại
+  
     const weekIndex = currentWeekStart.diff(createdAt, 'weeks');
-
-    // Nếu chưa đủ 1 tuần từ ngày thành lập → vẫn tính là tuần đầu tiên
-    const isFirstWeek = weekIndex === 0;
-
-    // Tuần mới bắt đầu từ createdAt (nếu tuần đầu) hoặc từ thứ 2 tuần hiện tại
-    const weekStart = isFirstWeek
-      ? createdAt
-      : currentWeekStart.clone();
-
+    const weekStart = currentWeekStart.clone(); // ✅ đồng bộ với các update khác
+  
     const weekOfYear = weekStart.isoWeek();
     const year = weekStart.isoWeekYear();
     const month = weekStart.month() + 1;
-
-    // Kiểm tra nếu tuần này đã được tạo
+  
     const alreadyExists = record?.items?.some(item =>
       moment(item.weekStart).isSame(weekStart, 'day')
     );
-
+  
     if (!alreadyExists) {
       const newItem = {
         weekIndex,
@@ -45,7 +36,7 @@ async function createEmptyWeekIfMissing() {
         cpi: 100,
         unemployment: 5
       };
-
+  
       if (!record) {
         record = new WeeklySalesInput({
           supplier: sup._id,
@@ -57,7 +48,7 @@ async function createEmptyWeekIfMissing() {
         }
         record.items.push(newItem);
       }
-
+  
       await record.save();
       console.log(`🟢 Tạo bản ghi tuần mới cho ${sup.storeName} (tuần ${weekIndex})`);
     }
