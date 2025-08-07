@@ -7,7 +7,11 @@ router.post('/:supplierId', async (req, res) => {
   try {
     const supplierId = req.params.supplierId;
     const predictedSales = await predictNextWeekRevenue(supplierId);
-    res.json({ predictedSales });
+
+    res.json({
+      xgb: predictedSales.xgb,
+      gru: predictedSales.gru
+    });
   } catch (err) {
     res.status(500).json({ error: err.message || 'Lỗi khi dự đoán' });
   }
