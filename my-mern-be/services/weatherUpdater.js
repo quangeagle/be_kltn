@@ -32,30 +32,23 @@
     if (temperature == null) return;
   
     const now = moment();
+    const weekStart = now.startOf('isoWeek').toDate();
   
-    const suppliers = await Supplier.find();
-    for (const sup of suppliers) {
-      const createdAt = moment(sup.createdAt).startOf('day');
-      const currentWeekIndex = now.startOf('isoWeek').diff(createdAt, 'weeks');
-  
-      const result = await WeeklySalesInput.updateOne(
-        {
-          supplier: sup._id,
-          'items.weekIndex': currentWeekIndex
-        },
-        {
-          $set: {
-            'items.$[elem].temperature': temperature
-          }
-        },
-        {
-          arrayFilters: [{ 'elem.weekIndex': currentWeekIndex }]
+    const result = await WeeklySalesInput.updateMany(
+      { 'items.weekStart': weekStart },
+      {
+        $set: {
+          'items.$[elem].temperature': temperature
         }
-      );
+      },
+      {
+        arrayFilters: [{ 'elem.weekStart': weekStart }]
+      }
+    );
   
-      console.log(`✅ Cập nhật nhiệt độ cho ${sup.storeName} (tuần ${currentWeekIndex}): ${temperature}°C`);
-    }
+    console.log(`✅ Cập nhật nhiệt độ cho ${result.modifiedCount} bản ghi tuần ${weekStart}: ${temperature}°C`);
   }
+  
   
   
   module.exports = { updateTemperatureForAll };

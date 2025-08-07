@@ -40,12 +40,11 @@ async function fetchFuelPriceUSD(province = 'ho-chi-minh') {
 async function updateFuelPriceForAll() {
   const now = moment();
   const weekStart = now.startOf('isoWeek').toDate();
-  const province = 'ho-chi-minh'; // sau này có thể tự động hóa theo địa chỉ
+  const province = 'ho-chi-minh';
 
   const fuelPriceUSD = await fetchFuelPriceUSD(province);
   if (!fuelPriceUSD) return;
 
-  // Cập nhật cho tất cả bản ghi của tuần hiện tại
   const result = await WeeklySalesInput.updateMany(
     { 'items.weekStart': weekStart },
     {
@@ -58,6 +57,7 @@ async function updateFuelPriceForAll() {
     }
   );
 
-  console.log(`✅ Cập nhật giá xăng cho ${result.modifiedCount} bản ghi: ${fuelPriceUSD} USD/Gallon`);
+  console.log(`✅ Cập nhật giá xăng cho ${result.modifiedCount} bản ghi tuần ${weekStart}: ${fuelPriceUSD} USD/Gallon`);
 }
+
 module.exports = { updateFuelPriceForAll };
