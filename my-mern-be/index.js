@@ -18,6 +18,10 @@ const orderRoutes = require('./routes/orderRoutes');
 const fuelRoutes = require('./routes/fuel');
 const weatherRoutes = require('./routes/weather');
 const predictRoutes = require('./routes/predict');
+app.use(cors({
+  origin: 'http://localhost:5173',  // hoặc dùng "*" nếu chưa cần bảo mật cao
+  credentials: true, // nếu bạn dùng cookie/token
+}));
 // Middlewares
 app.use(cors());
 app.use(express.json());
