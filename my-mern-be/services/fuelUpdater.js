@@ -2,7 +2,6 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const moment = require('moment');
 const WeeklySalesInput = require('../models/WeeklySalesInput');
-const Supplier = require('../models/Supplier');
 
 async function fetchRateUSD() {
   console.log("⚠️ Sử dụng tỷ giá giả để test");
@@ -39,25 +38,31 @@ async function fetchFuelPriceUSD(province = 'ho-chi-minh') {
 
 async function updateFuelPriceForAll() {
   const now = moment();
-  const weekStart = now.startOf('isoWeek').toDate();
+  const currentWeek = now.isoWeek();
+  const currentYear = now.isoWeekYear();
   const province = 'ho-chi-minh';
 
   const fuelPriceUSD = await fetchFuelPriceUSD(province);
   if (!fuelPriceUSD) return;
 
   const result = await WeeklySalesInput.updateMany(
-    { 'items.weekStart': weekStart },
+    {},
     {
       $set: {
         'items.$[elem].fuelPrice': fuelPriceUSD
       }
     },
     {
-      arrayFilters: [{ 'elem.weekStart': weekStart }]
+      arrayFilters: [
+        {
+          'elem.weekOfYear': currentWeek,
+          'elem.year': currentYear
+        }
+      ]
     }
   );
 
-  console.log(`✅ Cập nhật giá xăng cho ${result.modifiedCount} bản ghi tuần ${weekStart}: ${fuelPriceUSD} USD/Gallon`);
+  console.log(`✅ Đã cập nhật giá xăng cho ${result.modifiedCount} bản ghi tuần ${currentWeek}/${currentYear}: ${fuelPriceUSD} USD/gallon`);
 }
 
 module.exports = { updateFuelPriceForAll };
