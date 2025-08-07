@@ -7,13 +7,15 @@ exports.predictNextWeekRevenue = async (supplierId) => {
       .sort({ weekIndex: -1 })
       .limit(10);
 
-    if (records.length === 0) {
-      throw new Error('Không có dữ liệu đủ 10 tuần');
+    if (records.length < 10) {
+      throw new Error('Không có đủ dữ liệu 10 tuần');
     }
 
+    // Sắp xếp đúng thứ tự tuần từ cũ đến mới
     const sorted = records.sort((a, b) => a.weekIndex - b.weekIndex);
 
-    const features = sorted.flatMap(item => [
+    // Định dạng đầu vào XGBoost: [80 giá trị]
+    const xgbFeatures = sorted.flatMap(item => [
       item.weeklySales || 0,
       item.holidayFlag || 0,
       item.temperature || 0,
@@ -24,14 +26,30 @@ exports.predictNextWeekRevenue = async (supplierId) => {
       item.month || 0
     ]);
 
-    while (features.length < 80) features.unshift(0);
+    // Định dạng đầu vào GRU: [[8], [8], ..., [8]] (10 dòng)
+    const gruData = sorted.map(item => [
+      item.weeklySales || 0,
+      item.holidayFlag || 0,
+      item.temperature || 0,
+      item.fuelPrice || 0,
+      item.cpi || 0,
+      item.unemployment || 0,
+      item.weekOfYear || 0,
+      item.month || 0
+    ]);
 
-    const aiResponse = await axios.post('https://deploy-modelai.onrender.com/predict', { features });
-    const predictedSales = aiResponse.data.predicted_weekly_sales;
+    // Gọi song song 2 API
+    const [xgbResponse, gruResponse] = await Promise.all([
+      axios.post('https://deploy-modelai.onrender.com/predict/xgb', { features: xgbFeatures }),
+      axios.post('https://deploy-modelai.onrender.com/predict/gru', { data: gruData })
+    ]);
 
-    return predictedSales;
+    return {
+      xgb: xgbResponse.data.predicted_weekly_sales,
+      gru: gruResponse.data.predicted_weekly_sales
+    };
   } catch (err) {
     console.error('❌ Dự đoán lỗi:', err.message);
-    throw err; // router sẽ xử lý
+    throw err;
   }
 };
