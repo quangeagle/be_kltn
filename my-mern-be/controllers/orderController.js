@@ -159,10 +159,14 @@ exports.approveOrder = async (req, res) => {
       weeklyRecord.items.sort((a, b) => moment(b.weekStart).diff(moment(a.weekStart)));
 
       // 🔢 Cập nhật lại weekIndex
-      weeklyRecord.items = weeklyRecord.items.map((item, idx) => ({
-        ...item,
-        weekIndex: idx
-      }));
+    // Sắp xếp theo tuần tăng dần (cũ nhất → mới nhất)
+weeklyRecord.items.sort((a, b) => moment(a.weekStart).diff(moment(b.weekStart)));
+
+// Gán weekIndex từ 0 → n
+weeklyRecord.items.forEach((item, index) => {
+  item.weekIndex = index;
+});
+
     }
 
     await weeklyRecord.save();

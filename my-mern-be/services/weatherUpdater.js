@@ -27,26 +27,32 @@
   }
 
   async function updateTemperatureForAll() {
+    const now = moment();
+    const currentWeek = now.isoWeek();
+    const currentYear = now.isoWeekYear();
     const city = 'ho chi minh';
+  
     const temperature = await fetchTemperature(city);
     if (temperature == null) return;
   
-    const now = moment();
-    const weekStart = now.startOf('isoWeek').toDate();
-  
     const result = await WeeklySalesInput.updateMany(
-      { 'items.weekStart': weekStart },
+      {},
       {
         $set: {
           'items.$[elem].temperature': temperature
         }
       },
       {
-        arrayFilters: [{ 'elem.weekStart': weekStart }]
+        arrayFilters: [
+          {
+            'elem.weekOfYear': currentWeek,
+            'elem.year': currentYear
+          }
+        ]
       }
     );
   
-    console.log(`✅ Cập nhật nhiệt độ cho ${result.modifiedCount} bản ghi tuần ${weekStart}: ${temperature}°C`);
+    console.log(`🌡️ Đã cập nhật nhiệt độ cho ${result.modifiedCount} bản ghi tuần ${currentWeek}/${currentYear}: ${temperature}°C`);
   }
   
   
