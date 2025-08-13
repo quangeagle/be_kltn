@@ -3,6 +3,8 @@ const Product = require('../models/Product');
 const Cart = require('../models/Cart');
 const moment = require('moment');
 const WeeklySalesInput = require('../models/WeeklySalesInput');
+const PredictionLog = require('../models/PredictionLog');
+
 exports.placeOrder = async (req, res) => {
   try {
     const { userId, address, paymentMethod } = req.body;
@@ -171,7 +173,24 @@ exports.approveOrder = async (req, res) => {
     }
 
     await weeklyRecord.save();
-
+    await PredictionLog.findOneAndUpdate(
+      { supplier: supplierId, weekStart },
+      [
+        {
+          $set: {
+            actualWeeklySales: { $ifNull: ["$actualWeeklySales", 0] }
+          }
+        },
+        {
+          $set: {
+            actualWeeklySales: { $add: ["$actualWeeklySales", order.totalAmount] }
+          }
+        }
+      ],
+      { upsert: true }
+    );
+    
+    
     res.status(200).json({
       message: '✅ Đã duyệt đơn hàng và cập nhật doanh thu tuần.',
       order

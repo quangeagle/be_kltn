@@ -6,7 +6,14 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const cron = require('node-cron');
+const { generateWeeklyReport } = require('./services/weeklyReport');
 
+// 📅 Chạy vào 8h sáng Chủ nhật hàng tuần
+cron.schedule('0 8 * * 0', async () => {
+  console.log('🕗 Đang chạy tổng kết doanh thu tuần...');
+  await generateWeeklyReport();
+});
 const userRoutes = require('./routes/userRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const supplierRoutes = require('./routes/supplierRoutes');
@@ -18,6 +25,8 @@ const orderRoutes = require('./routes/orderRoutes');
 const fuelRoutes = require('./routes/fuel');
 const weatherRoutes = require('./routes/weather');
 const predictRoutes = require('./routes/predict');
+const revenueRoutes = require('./routes/revenue');  
+const weeklySalesInputRoutes = require('./routes/weeklySalesInputRoutes');
 app.use(cors({
   origin: 'http://localhost:5173',  // hoặc dùng "*" nếu chưa cần bảo mật cao
   credentials: true, // nếu bạn dùng cookie/token
@@ -36,6 +45,8 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/fuel', fuelRoutes);
 app.use('/api/weather', weatherRoutes);
 app.use('/api/predict', predictRoutes);
+app.use('/api/revenue', revenueRoutes);
+app.use('/api/weekly-sales', weeklySalesInputRoutes);
 // Routes
 app.get('/', (req, res) => {
   res.send('🔥 Backend is running!');
