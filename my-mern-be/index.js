@@ -28,9 +28,10 @@ const predictRoutes = require('./routes/predict');
 const revenueRoutes = require('./routes/revenue');  
 const weeklySalesInputRoutes = require('./routes/weeklySalesInputRoutes');
 app.use(cors({
-  origin: 'http://localhost:5173',  // hoặc dùng "*" nếu chưa cần bảo mật cao
-  credentials: true, // nếu bạn dùng cookie/token
+  origin: ['http://localhost:5173', 'https://fe-kltn.vercel.app'],
+  credentials: true,
 }));
+
 // Middlewares
 app.use(cors());
 app.use(express.json());
