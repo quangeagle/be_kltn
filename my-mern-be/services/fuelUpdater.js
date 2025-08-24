@@ -2,6 +2,7 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const moment = require('moment');
 const WeeklySalesInput = require('../models/WeeklySalesInput');
+const PredictionLog = require('../models/PredictionLog');
 
 async function fetchRateUSD() {
   console.log("⚠️ Sử dụng tỷ giá giả để test");
@@ -45,25 +46,20 @@ async function updateFuelPriceForAll() {
   const fuelPriceUSD = await fetchFuelPriceUSD(province);
   if (!fuelPriceUSD) return;
 
-  // Cập nhật cho tuần hiện tại (để dự đoán ngay lập tức)
-  const result = await WeeklySalesInput.updateMany(
-    {},
+  // Cập nhật vào PredictionLog để người dùng có thể dự đoán ngay lập tức
+  const result = await PredictionLog.updateMany(
     {
-      $set: {
-        'items.$[elem].fuelPrice': fuelPriceUSD
-      }
+      weekOfYear: currentWeek,
+      year: currentYear
     },
     {
-      arrayFilters: [
-        {
-          'elem.weekOfYear': currentWeek,
-          'elem.year': currentYear
-        }
-      ]
+      $set: {
+        'externalFactorsCurrent.fuelPrice': fuelPriceUSD
+      }
     }
   );
 
-  console.log(`✅ Đã cập nhật giá xăng cho ${result.modifiedCount} bản ghi tuần ${currentWeek}/${currentYear}: ${fuelPriceUSD} USD/gallon`);
+  console.log(`✅ Đã cập nhật giá xăng vào PredictionLog cho ${result.modifiedCount} bản ghi tuần ${currentWeek}/${currentYear}: ${fuelPriceUSD} USD/gallon`);
 }
 
 // Hàm cập nhật giá xăng cho tuần mới (chỉ chạy vào thứ 2)
@@ -83,7 +79,7 @@ async function updateFuelPriceForNewWeek() {
   const fuelPriceUSD = await fetchFuelPriceUSD(province);
   if (!fuelPriceUSD) return;
 
-  // Cập nhật cho tuần mới (tuần hiện tại)
+  // Cập nhật vào WeeklySalesInput cho tuần mới (chỉ thứ 2)
   const result = await WeeklySalesInput.updateMany(
     {},
     {
@@ -101,7 +97,7 @@ async function updateFuelPriceForNewWeek() {
     }
   );
 
-  console.log(`🆕 Đã cập nhật giá xăng TUẦN MỚI cho ${result.modifiedCount} bản ghi tuần ${currentWeek}/${currentYear}: ${fuelPriceUSD} USD/gallon`);
+  console.log(`🆕 Đã cập nhật giá xăng TUẦN MỚI vào WeeklySalesInput cho ${result.modifiedCount} bản ghi tuần ${currentWeek}/${currentYear}: ${fuelPriceUSD} USD/gallon`);
 }
 
 module.exports = { updateFuelPriceForAll, updateFuelPriceForNewWeek };

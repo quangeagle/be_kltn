@@ -38,6 +38,7 @@ const weeklySalesInputRoutes = require('./routes/weeklySalesInputRoutes');
 const weeklySaleInputRoutes2 = require('./routes/weeklySaleInput');
 const predictionTestRoutes = require('./routes/Pre2Routes');
 const testRoutes = require('./routes/testRoutes');
+const updateDataRoutes = require('./routes/smartUpdate');
 app.use(cors({
   origin: ['http://localhost:5173', 'https://fe-kltn.vercel.app'],
   credentials: true,
@@ -63,6 +64,7 @@ app.use('/api/weekly-sales', weeklySalesInputRoutes);
 app.use('/api/weekly-sales2', weeklySaleInputRoutes2);
 app.use('/api/prediction-test', predictionTestRoutes);
 app.use('/api/test', testRoutes);
+app.use('/api/update-data', updateDataRoutes);
 app.get('/', (req, res) => {
   res.send('🔥 Backend is running!');
 });
