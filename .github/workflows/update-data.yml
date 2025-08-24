@@ -18,7 +18,7 @@ jobs:
         working-directory: my-mern-be
 
       - name: 🚀 Chạy script updateData.js
-         run: node services/updateData.js
+        run: node services/updateData.js
         working-directory: my-mern-be
         env:
           MONGO_URI: ${{ secrets.MONGO_URI }}
