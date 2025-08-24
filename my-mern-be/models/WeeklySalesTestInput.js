@@ -15,11 +15,10 @@ const weeklyItemSchema = new mongoose.Schema({
   unemployment: { type: Number, required: true }
 }, { _id: false });
 
-const weeklySalesInputSchema = new mongoose.Schema({
-  supplier: { type: mongoose.Schema.Types.ObjectId, ref: 'Supplier', required: true },
-  items: { type: [weeklyItemSchema], required: true }, // Mảng các tuần
-  source: { type: String, enum: ['dataset', 'realtime'], default: 'realtime' },
+// Bảng test dataset
+const weeklySalesTestInputSchema = new mongoose.Schema({
+  items: { type: [weeklyItemSchema], required: true }, // không cần supplier
   createdAt: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model('WeeklySalesInput', weeklySalesInputSchema);
+module.exports = mongoose.model('WeeklySalesTestInput', weeklySalesTestInputSchema);

@@ -27,34 +27,73 @@
   }
 
   async function updateTemperatureForAll() {
-    const now = moment();
-    const currentWeek = now.isoWeek();
-    const currentYear = now.isoWeekYear();
-    const city = 'ho chi minh';
-  
-    const temperature = await fetchTemperature(city);
-    if (temperature == null) return;
-  
-    const result = await WeeklySalesInput.updateMany(
-      {},
-      {
-        $set: {
-          'items.$[elem].temperature': temperature
-        }
-      },
-      {
-        arrayFilters: [
-          {
-            'elem.weekOfYear': currentWeek,
-            'elem.year': currentYear
-          }
-        ]
+  const now = moment();
+  const currentWeek = now.isoWeek();
+  const currentYear = now.isoWeekYear();
+  const city = 'ho chi minh';
+
+  const temperature = await fetchTemperature(city);
+  if (temperature == null) return;
+
+  // Cập nhật cho tuần hiện tại (để dự đoán ngay lập tức)
+  const result = await WeeklySalesInput.updateMany(
+    {},
+    {
+      $set: {
+        'items.$[elem].temperature': temperature
       }
-    );
+    },
+    {
+      arrayFilters: [
+        {
+          'elem.weekOfYear': currentWeek,
+          'elem.year': currentYear
+        }
+      ]
+    }
+  );
+
+  console.log(`✅ Đã cập nhật nhiệt độ cho ${result.modifiedCount} bản ghi tuần ${currentWeek}/${currentYear}: ${temperature}°C`);
+}
+
+// Hàm cập nhật nhiệt độ cho tuần mới (chỉ chạy vào thứ 2)
+async function updateTemperatureForNewWeek() {
+  const now = moment();
+  const currentWeek = now.isoWeek();
+  const currentYear = now.isoWeekYear();
+  const currentDay = now.day(); // 0 = Chủ nhật, 1 = Thứ 2
+  const city = 'ho chi minh';
   
-    console.log(`🌡️ Đã cập nhật nhiệt độ cho ${result.modifiedCount} bản ghi tuần ${currentWeek}/${currentYear}: ${temperature}°C`);
+  // Chỉ cập nhật vào thứ 2 (day = 1)
+  if (currentDay !== 1) {
+    console.log('📅 Không phải thứ 2, bỏ qua cập nhật tuần mới');
+    return;
   }
+
+  const temperature = await fetchTemperature(city);
+  if (temperature == null) return;
+
+  // Cập nhật cho tuần mới (tuần hiện tại)
+  const result = await WeeklySalesInput.updateMany(
+    {},
+    {
+      $set: {
+        'items.$[elem].temperature': temperature
+      }
+    },
+    {
+      arrayFilters: [
+        {
+          'elem.weekOfYear': currentWeek,
+          'elem.year': currentYear
+        }
+      ]
+    }
+  );
+
+  console.log(`🆕 Đã cập nhật nhiệt độ TUẦN MỚI cho ${result.modifiedCount} bản ghi tuần ${currentWeek}/${currentYear}: ${temperature}°C`);
+}
   
   
   
-  module.exports = { updateTemperatureForAll };
+  module.exports = { updateTemperatureForAll, updateTemperatureForNewWeek };

@@ -1,8 +1,7 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
-const { updateFuelPriceForAll } = require('../services/fuelUpdater');
-const { updateTemperatureForAll } = require('../services/weatherUpdater');
-const { createEmptyWeekIfMissing } = require('../services/initWeeklyData'); // 👈 Thêm hàm này
+const { smartUpdateData } = require('../services/smartDataUpdater');
+const { createEmptyWeekIfMissing } = require('../services/initWeeklyData');
 
 async function runUpdate() {
   try {
@@ -16,11 +15,8 @@ async function runUpdate() {
     console.log('🟡 Tạo bản ghi tuần mới cho các nhà cung cấp (nếu chưa có)...');
     await createEmptyWeekIfMissing(); // 👈 Bước tạo bản ghi
 
-    console.log('⛽ Cập nhật giá xăng...');
-    await updateFuelPriceForAll();
-
-    console.log('🌡️ Cập nhật nhiệt độ...');
-    await updateTemperatureForAll();
+    console.log('🧠 Cập nhật dữ liệu thông minh...');
+    await smartUpdateData();
 
     console.log('✅ Hoàn tất cập nhật dữ liệu hàng tuần!');
   } catch (err) {

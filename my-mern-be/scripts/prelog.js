@@ -16,17 +16,17 @@ async function createPredictionLog() {
     const newLog = new PredictionLog({
         supplier: supplierId,
         weekStart: new Date('2010-04-30T00:00:00.000Z'), // tuần 17 năm 2010 (bắt đầu ngày thứ Hai 19/04/2010)
-        actualWeeklySales: 1425100.71,
+        actualWeeklySales: 1603955.12,
         createdAt: new Date(),
         updatedAt: new Date(),
         externalFactorsCurrent: {
           holidayFlag: 0,
-          temperature: 67.41,
-          fuelPrice: 2.78,
-          cpi: 210.3895456,
+          temperature: 72.55,
+          fuelPrice: 2.835,
+          cpi: 210.3399684,
           unemployment: 7.808,
-          month: 12,
-          weekOfYear: 17,
+          month: 4,
+          weekOfYear: 18,
           year: 2010,
           dayOfWeek: 4,    // thứ Năm
           isWeekend: 0

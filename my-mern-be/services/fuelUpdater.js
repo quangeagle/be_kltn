@@ -45,6 +45,7 @@ async function updateFuelPriceForAll() {
   const fuelPriceUSD = await fetchFuelPriceUSD(province);
   if (!fuelPriceUSD) return;
 
+  // Cập nhật cho tuần hiện tại (để dự đoán ngay lập tức)
   const result = await WeeklySalesInput.updateMany(
     {},
     {
@@ -65,4 +66,42 @@ async function updateFuelPriceForAll() {
   console.log(`✅ Đã cập nhật giá xăng cho ${result.modifiedCount} bản ghi tuần ${currentWeek}/${currentYear}: ${fuelPriceUSD} USD/gallon`);
 }
 
-module.exports = { updateFuelPriceForAll };
+// Hàm cập nhật giá xăng cho tuần mới (chỉ chạy vào thứ 2)
+async function updateFuelPriceForNewWeek() {
+  const now = moment();
+  const currentWeek = now.isoWeek();
+  const currentYear = now.isoWeekYear();
+  const currentDay = now.day(); // 0 = Chủ nhật, 1 = Thứ 2
+  
+  // Chỉ cập nhật vào thứ 2 (day = 1)
+  if (currentDay !== 1) {
+    console.log('📅 Không phải thứ 2, bỏ qua cập nhật tuần mới');
+    return;
+  }
+
+  const province = 'ho-chi-minh';
+  const fuelPriceUSD = await fetchFuelPriceUSD(province);
+  if (!fuelPriceUSD) return;
+
+  // Cập nhật cho tuần mới (tuần hiện tại)
+  const result = await WeeklySalesInput.updateMany(
+    {},
+    {
+      $set: {
+        'items.$[elem].fuelPrice': fuelPriceUSD
+      }
+    },
+    {
+      arrayFilters: [
+        {
+          'elem.weekOfYear': currentWeek,
+          'elem.year': currentYear
+        }
+      ]
+    }
+  );
+
+  console.log(`🆕 Đã cập nhật giá xăng TUẦN MỚI cho ${result.modifiedCount} bản ghi tuần ${currentWeek}/${currentYear}: ${fuelPriceUSD} USD/gallon`);
+}
+
+module.exports = { updateFuelPriceForAll, updateFuelPriceForNewWeek };
