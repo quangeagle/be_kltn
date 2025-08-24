@@ -21,6 +21,30 @@ cron.schedule('0 6 * * 1', async () => {
   console.log('🆕 Đang chạy cập nhật dữ liệu tuần mới...');
   await smartUpdateData();
 });
+
+// 📝 Chạy vào 5h sáng thứ 2 hàng tuần để tạo PredictionLog mới
+cron.schedule('0 5 * * 1', async () => {
+  console.log('📝 Đang tạo PredictionLog mới cho tuần tiếp theo...');
+  try {
+    const { createNextWeekPredictionLog } = require('./controllers/predictionLogController');
+    // Gọi controller để tạo PredictionLog mới
+    const mockReq = { body: {} };
+    const mockRes = {
+      status: (code) => ({
+        json: (data) => {
+          if (code === 200) {
+            console.log('✅ Tạo PredictionLog mới thành công:', data.message);
+          } else {
+            console.log('⚠️ Tạo PredictionLog mới:', data.error);
+          }
+        }
+      })
+    };
+    await createNextWeekPredictionLog(mockReq, mockRes);
+  } catch (error) {
+    console.error('❌ Lỗi tạo PredictionLog mới:', error);
+  }
+});
 const userRoutes = require('./routes/userRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const supplierRoutes = require('./routes/supplierRoutes');
@@ -37,6 +61,7 @@ const revenueRoutes = require('./routes/revenue');
 const weeklySalesInputRoutes = require('./routes/weeklySalesInputRoutes');
 const weeklySaleInputRoutes2 = require('./routes/weeklySaleInput');
 const predictionTestRoutes = require('./routes/Pre2Routes');
+const predictionLogRoutes = require('./routes/predictionLogRoutes');
 const testRoutes = require('./routes/testRoutes');
 const updateDataRoutes = require('./routes/smartUpdate');
 app.use(cors({
@@ -63,6 +88,7 @@ app.use('/api/revenue', revenueRoutes);
 app.use('/api/weekly-sales', weeklySalesInputRoutes);
 app.use('/api/weekly-sales2', weeklySaleInputRoutes2);
 app.use('/api/prediction-test', predictionTestRoutes);
+app.use('/api/prediction-logs', predictionLogRoutes);
 app.use('/api/test', testRoutes);
 app.use('/api/update-data', updateDataRoutes);
 app.get('/', (req, res) => {
