@@ -27,9 +27,6 @@
     }
   }
 
-
-  
-
   async function updateTemperatureForAll() {
   const now = moment();
   const currentWeek = now.isoWeek();
