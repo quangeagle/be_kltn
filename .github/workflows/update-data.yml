@@ -18,7 +18,8 @@ jobs:
         working-directory: my-mern-be
 
       - name: 🚀 Chạy script updateData.js
-        run: node services/updateData.js
+        run: |
+          curl -X GET "https://be-kltn-1.onrender.com/api/update-data/current-week"
         working-directory: my-mern-be
         env:
           MONGO_URI: ${{ secrets.MONGO_URI }}
