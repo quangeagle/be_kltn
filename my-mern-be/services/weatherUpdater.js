@@ -4,6 +4,7 @@
   const axios = require('axios');
   const moment = require('moment');
   const WeeklySalesInput = require('../models/WeeklySalesInput');
+  const PredictionLog = require('../models/PredictionLog');
   const Supplier = require('../models/Supplier');
   const now = moment();
   const weekOfYear = now.isoWeek();
@@ -26,6 +27,9 @@
     }
   }
 
+
+  
+
   async function updateTemperatureForAll() {
   const now = moment();
   const currentWeek = now.isoWeek();
@@ -35,25 +39,20 @@
   const temperature = await fetchTemperature(city);
   if (temperature == null) return;
 
-  // Cập nhật cho tuần hiện tại (để dự đoán ngay lập tức)
-  const result = await WeeklySalesInput.updateMany(
-    {},
+  // Cập nhật vào PredictionLog để người dùng có thể dự đoán ngay lập tức
+  const result = await PredictionLog.updateMany(
     {
-      $set: {
-        'items.$[elem].temperature': temperature
-      }
+      weekOfYear: currentWeek,
+      year: currentYear
     },
     {
-      arrayFilters: [
-        {
-          'elem.weekOfYear': currentWeek,
-          'elem.year': currentYear
-        }
-      ]
+      $set: {
+        'externalFactorsCurrent.temperature': temperature
+      }
     }
   );
 
-  console.log(`✅ Đã cập nhật nhiệt độ cho ${result.modifiedCount} bản ghi tuần ${currentWeek}/${currentYear}: ${temperature}°C`);
+  console.log(`✅ Đã cập nhật nhiệt độ vào PredictionLog cho ${result.modifiedCount} bản ghi tuần ${currentWeek}/${currentYear}: ${temperature}°C`);
 }
 
 // Hàm cập nhật nhiệt độ cho tuần mới (chỉ chạy vào thứ 2)
@@ -73,7 +72,7 @@ async function updateTemperatureForNewWeek() {
   const temperature = await fetchTemperature(city);
   if (temperature == null) return;
 
-  // Cập nhật cho tuần mới (tuần hiện tại)
+  // Cập nhật vào WeeklySalesInput cho tuần mới (chỉ thứ 2)
   const result = await WeeklySalesInput.updateMany(
     {},
     {
@@ -91,7 +90,7 @@ async function updateTemperatureForNewWeek() {
     }
   );
 
-  console.log(`🆕 Đã cập nhật nhiệt độ TUẦN MỚI cho ${result.modifiedCount} bản ghi tuần ${currentWeek}/${currentYear}: ${temperature}°C`);
+  console.log(`🆕 Đã cập nhật nhiệt độ TUẦN MỚI vào WeeklySalesInput cho ${result.modifiedCount} bản ghi tuần ${currentWeek}/${currentYear}: ${temperature}°C`);
 }
   
   
