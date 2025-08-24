@@ -1,8 +1,6 @@
 const mongoose = require('mongoose');
 
-const predictionLogSchema = new mongoose.Schema({
-  supplier: { type: mongoose.Schema.Types.ObjectId, ref: 'Supplier', required: true },
-
+const predictionTestLogSchema = new mongoose.Schema({
   weekStart: { type: Date, required: true },
   weekOfYear: { type: Number, default: null },
   year: { type: Number, default: null },
@@ -36,4 +34,4 @@ const predictionLogSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-module.exports = mongoose.model('PredictionLog', predictionLogSchema);
+module.exports = mongoose.model('PredictionTestLog', predictionTestLogSchema);
