@@ -4,5 +4,5 @@ const predictionTestLogController = require('../controllers/predictionTestLogCon
 
 // POST nhập tay dữ liệu test
 router.post('/test-log', predictionTestLogController.createOrUpdateTestLog);
-
+router.post('/seed', predictionTestLogController.seedDemoData);
 module.exports = router;
