@@ -13,5 +13,6 @@ router.get('/:id', predictionLogController.getPredictionLogById);
 
 // 🗑️ Xóa PredictionLog
 router.delete('/:id', predictionLogController.deletePredictionLog);
-
+router.post('/them-log', predictionLogController.createPredictionLog);
+router.post('/external-factors', predictionLogController.createExternalFactors);
 module.exports = router;
