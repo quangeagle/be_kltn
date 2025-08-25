@@ -66,12 +66,25 @@ exports.handlePrediction = async (req, res) => {
         Unemployment: lastWeek.unemployment
       };
   
-      const externalFactorsCurrent = {
+      // Lấy externalFactorsCurrent từ bản ghi PredictionLog gần nhất của supplier
+      const latestLog = await PredictionLog.findOne({ supplier: supplierId })
+        .sort({ weekStart: -1 })
+        .lean();
+
+      const baseCurrentFactors = latestLog?.externalFactorsCurrent || {
         holidayFlag: lastWeek.holidayFlag,
         temperature: lastWeek.temperature,
         fuelPrice: lastWeek.fuelPrice,
         cpi: lastWeek.cpi,
-        unemployment: lastWeek.unemployment,
+        unemployment: lastWeek.unemployment
+      };
+
+      const externalFactorsCurrent = {
+        holidayFlag: baseCurrentFactors.holidayFlag,
+        temperature: baseCurrentFactors.temperature,
+        fuelPrice: baseCurrentFactors.fuelPrice,
+        cpi: baseCurrentFactors.cpi,
+        unemployment: baseCurrentFactors.unemployment,
         month: weekToPredictMoment.month() + 1,
         weekOfYear: weekToPredictMoment.isoWeek(),
         year: weekToPredictMoment.isoWeekYear(),
@@ -122,9 +135,9 @@ exports.handlePrediction = async (req, res) => {
           weekStart,
           weekOfYear: weekToPredictMoment.isoWeek(),
           year: weekToPredictMoment.isoWeekYear(),
-          predictedByXGB: xgbRes?.data?.prediction?.final_prediction || null,
-          predictedByGRU: gruRes.data.predicted_sales,
-          externalFactorsCurrent,
+                   predictedByXGB: xgbRes?.data?.prediction?.final_prediction || null,
+         predictedByGRU: gruRes.data.predicted_sales,
+         externalFactorsCurrent,
           predictions: [
             {
               modelUsed: 'GRU',
@@ -244,6 +257,7 @@ exports.handlePredictionFromInput = async (req, res) => {
     if (!supplierId) {
       return res.status(400).json({ error: "Không tìm thấy supplierId trong token" });
     }
+    console.log("🔑 Supplier ID:", supplierId);
 
     const { salesHistory, externalFactorsPrevious, externalFactorsCurrent } = req.body;
 
@@ -255,60 +269,99 @@ exports.handlePredictionFromInput = async (req, res) => {
       return res.status(400).json({ error: "Thiếu external factors" });
     }
 
+    // ⚡ Chuẩn hóa kiểu dữ liệu
+    const normalizedExternalFactorsCurrent = {
+      ...externalFactorsCurrent,
+      holidayFlag: parseInt(externalFactorsCurrent.holidayFlag) || 0,
+      isWeekend: parseInt(externalFactorsCurrent.isWeekend) || 0,
+      temperature: parseFloat(externalFactorsCurrent.temperature) || 0,
+      fuelPrice: parseFloat(externalFactorsCurrent.fuelPrice) || 0,
+      cpi: parseFloat(externalFactorsCurrent.cpi) || 0,
+      unemployment: parseFloat(externalFactorsCurrent.unemployment) || 0,
+      month: parseInt(externalFactorsCurrent.month) || 1,
+      weekOfYear: parseInt(externalFactorsCurrent.weekOfYear) || 1,
+      year: parseInt(externalFactorsCurrent.year) || 2024,
+      dayOfWeek: parseInt(externalFactorsCurrent.dayOfWeek) || 1
+    };
+
+    const normalizedExternalFactorsPrevious = {
+      temperature: parseFloat(externalFactorsPrevious.Temperature) || 0,
+      fuelPrice: parseFloat(externalFactorsPrevious.Fuel_Price) || 0,
+      cpi: parseFloat(externalFactorsPrevious.CPI) || 0,
+      unemployment: parseFloat(externalFactorsPrevious.Unemployment) || 0
+    };
+
+    console.log("✅ Validation passed - salesHistory length:", salesHistory.length);
+    console.log("✅ externalFactorsPrevious (normalized):", normalizedExternalFactorsPrevious);
+    console.log("✅ externalFactorsCurrent (normalized):", normalizedExternalFactorsCurrent);
+
     // ⚡ Đảm bảo salesHistory luôn là 10 tuần
     let history = salesHistory.slice(-10);
     while (history.length < 10) history.unshift(0);
 
     console.log("📤 Payload gửi GRU:", { sales_history: history });
-    console.log("🌡️ externalFactorsPrevious:", externalFactorsPrevious);
-    console.log("🌡️ externalFactorsCurrent:", externalFactorsCurrent);
+    console.log("🌡️ externalFactorsPrevious (normalized):", normalizedExternalFactorsPrevious);
+    console.log("🌡️ externalFactorsCurrent (normalized):", normalizedExternalFactorsCurrent);
 
-    // gọi GRU
-    const gruRes = await retryWithBackoff(() =>
-      axios.post("https://deploy-modelai-1.onrender.com/gru-standalone", {
-        sales_history: history
-      })
-    );
-    console.log("🤖 GRU response:", gruRes.data);
+         // gọi GRU
+     console.log("🚀 Gọi GRU API với payload:", { sales_history: history });
+     let gruRes = null;
+     try {
+       gruRes = await retryWithBackoff(() =>
+         axios.post("https://deploy-modelai-1.onrender.com/gru-standalone", {
+           sales_history: history
+         })
+       );
+       console.log("🤖 GRU response:", gruRes.data);
+     } catch (gruError) {
+       console.error("❌ GRU API error:", gruError.message);
+       return res.status(500).json({ 
+         error: "GRU API error", 
+         details: gruError.message,
+         message: "Không thể kết nối với model GRU"
+       });
+     }
 
     await delay(1000);
 
-    // gọi XGB
-    let xgbRes = null;
-    try {
-      xgbRes = await retryWithBackoff(() =>
-        axios.post("https://deploy-modelai-1.onrender.com/gru-ensemble", {
-          sales_history: history,
-          external_factors_current: externalFactorsCurrent,
-          external_factors_previous: externalFactorsPrevious
-        })
-      );
-      console.log("🤖 XGB response:", xgbRes.data);
-    } catch (xgbError) {
-      console.error("❌ XGB API error:", xgbError.message);
-      xgbRes = {
-        data: {
-          prediction: {
-            final_prediction: null,
-            confidence_score: null
-          },
-          xgboost_explanation: null
-        }
-      };
-    }
+         // gọi XGB
+     let xgbRes = null;
+     try {
+       console.log("🚀 Gọi XGB API với payload:", {
+         sales_history: history,
+         external_factors_current: normalizedExternalFactorsCurrent,
+         external_factors_previous: normalizedExternalFactorsPrevious
+       });
+       xgbRes = await retryWithBackoff(() =>
+         axios.post("https://deploy-modelai-1.onrender.com/gru-ensemble", {
+           sales_history: history,
+           external_factors_current: normalizedExternalFactorsCurrent,
+           external_factors_previous: normalizedExternalFactorsPrevious
+         })
+       );
+       console.log("🤖 XGB response:", xgbRes.data);
+     } catch (xgbError) {
+       console.error("❌ XGB API error:", xgbError.message);
+       xgbRes = {
+         data: {
+           prediction: {
+             final_prediction: null,
+             confidence_score: null
+           },
+           xgboost_explanation: null
+         }
+       };
+     }
 
-    // ⚡ Lưu log
-    const log = await PredictionLog.findOneAndUpdate(
-      { supplier: supplierId },
-      {
-        supplier: supplierId,
-        weekStart: new Date(), // user nhập không có tuần => default now
-        weekOfYear: externalFactorsCurrent.weekOfYear,
-        year: externalFactorsCurrent.year,
-        predictedByXGB: xgbRes?.data?.prediction?.final_prediction || null,
-        predictedByGRU: gruRes.data.predicted_sales,
-        externalFactorsCurrent,
-        predictions: [
+         // ⚡ Trả về kết quả dự đoán (không lưu DB)
+     console.log("🔧 Chuẩn bị tạo kết quả dự đoán...");
+     
+     const predictionResult = {
+       supplierId,
+       weekStart: new Date(),
+       weekOfYear: normalizedExternalFactorsCurrent.weekOfYear,
+       year: normalizedExternalFactorsCurrent.year,
+               predictions: [
           {
             modelUsed: "GRU",
             predictedSales: gruRes.data.predicted_sales,
@@ -329,13 +382,15 @@ exports.handlePredictionFromInput = async (req, res) => {
             logs: xgbRes?.data?.prediction || null,
             featureImportance: xgbRes?.data?.xgboost_explanation || null
           }
-        ]
-      },
-      { upsert: true, new: true }
-    );
+        ],
+       externalFactorsCurrent: normalizedExternalFactorsCurrent,
+       externalFactorsPrevious: normalizedExternalFactorsPrevious,
+       message: "Dự đoán thành công - không lưu vào database"
+     };
 
-    console.log("📝 PredictionLog saved:", log._id);
-    return res.json(log);
+     console.log("✅ Trả về kết quả dự đoán:", predictionResult);
+     console.log("📤 Gửi response về client...");
+     return res.json(predictionResult);
   } catch (err) {
     console.error("❌ Lỗi handlePredictionFromInput:", err.message, err.stack);
     return res.status(500).json({ error: err.message });
