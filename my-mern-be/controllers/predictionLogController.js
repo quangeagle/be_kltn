@@ -233,3 +233,91 @@ exports.deletePredictionLog = async (req, res) => {
     });
   }
 };
+exports.createPredictionLog = async (req, res) => {
+  try {
+    const {
+      supplier,
+      weekStart,
+      weekOfYear,
+      year,
+      predictedByXGB,
+      predictedByGRU,
+      actualWeeklySales,
+      predictions,
+      externalFactorsCurrent
+    } = req.body;
+
+    const newLog = new PredictionLog({
+      supplier,
+      weekStart,
+      weekOfYear,
+      year,
+      predictedByXGB,
+      predictedByGRU,
+      actualWeeklySales,
+      predictions,
+      externalFactorsCurrent
+    });
+
+    await newLog.save();
+
+    res.status(201).json({
+      message: '✅ PredictionLog created successfully',
+      data: newLog
+    });
+  } catch (error) {
+    console.error('❌ Error creating PredictionLog:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// GET all logs
+exports.getAllPredictionLogs = async (req, res) => {
+  try {
+    const logs = await PredictionLog.find().populate('supplier');
+    res.status(200).json(logs);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// GET logs by week + year
+exports.getPredictionLogByWeekYear = async (req, res) => {
+  try {
+    const { weekOfYear, year } = req.params;
+    const log = await PredictionLog.findOne({ weekOfYear, year }).populate('supplier');
+
+    if (!log) return res.status(404).json({ message: '❌ Not found' });
+
+    res.status(200).json(log);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+exports.createExternalFactors = async (req, res) => {
+  try {
+    const { supplier, weekStart, externalFactorsCurrent } = req.body;
+
+    if (!supplier || !weekStart || !externalFactorsCurrent) {
+      return res.status(400).json({ message: '❌ supplier, weekStart và externalFactorsCurrent là bắt buộc' });
+    }
+
+    const newLog = new PredictionLog({
+      supplier,
+      weekStart,
+      weekOfYear: externalFactorsCurrent.weekOfYear,
+      year: externalFactorsCurrent.year,
+      externalFactorsCurrent
+    });
+
+    await newLog.save();
+
+    res.status(201).json({
+      message: '✅ External factors log created successfully',
+      data: newLog
+    });
+  } catch (error) {
+    console.error('❌ Error creating external factors log:', error);
+    res.status(500).json({ error: error.message });
+  }
+};

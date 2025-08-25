@@ -8,7 +8,6 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const cron = require('node-cron');
 const { generateWeeklyReport } = require('./services/weeklyReport');
-const { smartUpdateData } = require('./services/smartDataUpdater');
 
 // 📅 Chạy vào 8h sáng Chủ nhật hàng tuần
 cron.schedule('0 8 * * 0', async () => {
@@ -16,11 +15,6 @@ cron.schedule('0 8 * * 0', async () => {
   await generateWeeklyReport();
 });
 
-// 🧠 Chạy vào 6h sáng thứ 2 hàng tuần để cập nhật dữ liệu tuần mới
-cron.schedule('0 6 * * 1', async () => {
-  console.log('🆕 Đang chạy cập nhật dữ liệu tuần mới...');
-  await smartUpdateData();
-});
 
 // 📝 Chạy vào 5h sáng thứ 2 hàng tuần để tạo PredictionLog mới
 cron.schedule('0 5 * * 1', async () => {
@@ -55,15 +49,15 @@ const wishlistRoutes = require('./routes/wishlistRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const fuelRoutes = require('./routes/fuel');
 const weatherRoutes = require('./routes/weather');
-const smartUpdateRoutes = require('./routes/smartUpdate');
 const predictRoutes = require('./routes/predict');
 const revenueRoutes = require('./routes/revenue');  
 const weeklySalesInputRoutes = require('./routes/weeklySalesInputRoutes');
 const weeklySaleInputRoutes2 = require('./routes/weeklySaleInput');
 const predictionTestRoutes = require('./routes/Pre2Routes');
 const predictionLogRoutes = require('./routes/predictionLogRoutes');
-const testRoutes = require('./routes/testRoutes');
-const updateDataRoutes = require('./routes/smartUpdate');
+const testRoutes = require('./routes/testRoutes')
+const predictionRoutes = require('./routes/Pre1');
+const predictionTestLogRoutes = require('./routes/predictionTestLogRoutes');
 app.use(cors({
   origin: ['http://localhost:5173', 'https://fe-kltn.vercel.app'],
   credentials: true,
@@ -82,7 +76,6 @@ app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/fuel', fuelRoutes);
 app.use('/api/weather', weatherRoutes);
-app.use('/api/smart-update', smartUpdateRoutes);
 app.use('/api/predict', predictRoutes);
 app.use('/api/revenue', revenueRoutes);
 app.use('/api/weekly-sales', weeklySalesInputRoutes);
@@ -90,7 +83,8 @@ app.use('/api/weekly-sales2', weeklySaleInputRoutes2);
 app.use('/api/prediction-test', predictionTestRoutes);
 app.use('/api/prediction-logs', predictionLogRoutes);
 app.use('/api/test', testRoutes);
-app.use('/api/update-data', updateDataRoutes);
+app.use('/api/prediction', predictionRoutes);
+app.use('/api/prediction-test-log', predictionTestLogRoutes);
 app.get('/', (req, res) => {
   res.send('🔥 Backend is running!');
 });

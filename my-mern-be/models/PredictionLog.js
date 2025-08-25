@@ -26,7 +26,7 @@ const predictionLogSchema = new mongoose.Schema({
     holidayFlag: { type: Number, enum: [0,1], default: null },
     temperature: { type: Number, default: null },
     fuelPrice: { type: Number, default: null },
-    cpi: { type: Number, default: null },
+    cpi: { type: Number, default: null },    
     unemployment: { type: Number, default: null },
     month: { type: Number, default: null },
     weekOfYear: { type: Number, default: null },

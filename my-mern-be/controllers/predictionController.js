@@ -203,4 +203,3 @@ exports.getPredictionLogs = async (req, res) => {
   }
 }
 
-
